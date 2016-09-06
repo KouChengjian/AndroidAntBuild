@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="custom_rules" >
+
+    <!-- 引用支持循环的jar包ant-contrib-1.0b3.jar -->
+
+    <taskdef resource="net/sf/antcontrib/antcontrib.properties" >
+
+        <classpath>
+
+            <pathelement location="lib/ant-contrib-1.0b3.jar" />
+        </classpath>
+    </taskdef>
+
+    <!-- 循环打包，target名为deploy，构建的时候必须选择deploy -->
+
+    <target name="deploy" >
+
+        <!-- 进来的时候先clean一下项目 -->
+
+        <antcall target="clean" />
+        <!-- for循环内容传进来的参数为market_channels，以","为分隔构建list，循环读取list，并将读取到的字符串以参数channel传进modify_manifest中 -->
+
+        <foreach
+            delimiter=","
+            list="${market_channels}"
+            param="channel"
+            target="modify_manifest" >
+        </foreach>
+    </target>
+
+    <target name="modify_manifest" >
+
+        <!-- 按正则匹配获取渠道名字，赋给channelname -->
+
+        <propertyregex
+            input="${channel}"
+            override="true"
+            property="channelname"
+            regexp="(.*):"
+            select="\1" />
+        <!-- 按正则匹配获取渠道号码，赋给channelkey -->
+
+        <propertyregex
+            input="${channel}"
+            override="true"
+            property="channelkey"
+            regexp=":(.*)"
+            select="\1" />
+        <!-- 将AndroidManifest.xml中的android:name="channelname"替换成为android:name="${channelname}"，这里的${channelname}是我们上面正则匹配出来的内容 -->
+
+        <replaceregexp
+            byline="true"
+            encoding="utf-8"
+            file="AndroidManifest.xml"
+            match="android:name=&quot;channelname&quot;"
+            replace="android:name=&quot;${channelname}&quot;" />
+        <!-- 将AndroidManifest.xml中的android:value="channelkey"替换成为android:value="${channelkey}" -->
+
+        <replaceregexp
+            byline="true"
+            encoding="utf-8"
+            file="AndroidManifest.xml"
+            match="android:value=&quot;channelkey&quot;"
+            replace="android:value=&quot;${channelkey}&quot;" />
+
+        <!-- 用release打包 -->
+
+        <antcall target="release" />
+        <!-- 拷贝渠道包到指定目录下，out.absolute.dir在自带的build.xml中定义了，为bin目录，如果要修改，可以在local.properties中添加一行out.absolute.dir=指定目录 -->
+
+        <copy
+            file="${out.absolute.dir}/${ant.project.name}-release.apk"
+            tofile="${out.absolute.dir}/out/${ant.project.name}-v${version}-${channelkey}.apk" />
+
+        <!-- 打包完一个渠道包后把渠道名和渠道号替换回原来格式，这样可以进行下一次替换,AndroidManifest.xml里所有匹配的东西都会被替换 -->
+
+        <replaceregexp
+            byline="true"
+            encoding="utf-8"
+            file="AndroidManifest.xml"
+            match="android:name=&quot;${channelname}&quot;"
+            replace="android:name=&quot;channelname&quot;" />
+
+        <replaceregexp
+            byline="true"
+            encoding="utf-8"
+            file="AndroidManifest.xml"
+            match="android:value=&quot;${channelkey}&quot;"
+            replace="android:value=&quot;channelkey&quot;" />
+    </target>
+    
+    
+    
+    <!-- <taskdef resource="net/sf/antcontrib/antcontrib.properties" >
+
+        <classpath>
+
+            <pathelement location="lib/ant-contrib-1.0b3.jar" />
+        </classpath>
+    </taskdef>
+
+    <target name="deploy" >
+
+        <antcall target="clean" />
+        
+        <foreach
+            delimiter=","
+            list="${market_channels}"
+            param="channel"
+            target="modify_manifest" >
+        </foreach>
+    </target>
+
+    <target name="modify_manifest" >
+
+        <replaceregexp
+            byline="false"
+            flags="g" >
+
+            匹配的内容是 android:value="*****" android:name="UMENG_CHANNEL"
+
+            <regexp pattern="android:value=&quot;(.*)&quot; android:name=&quot;UMENG_CHANNEL&quot;" />
+            匹配之后将其替换为 android:value="渠道名" android:name="UMENG_CHANNEL"
+
+            <substitution expression="android:value=&quot;${channel}&quot; android:name=&quot;UMENG_CHANNEL&quot;" />
+            
+            正则表达式需要匹配的文件为AndroidManifest.xml
+
+            <fileset
+                dir=""
+                includes="AndroidManifest.xml" />
+        </replaceregexp>
+
+        <property
+            name="out.release.file"
+            location="${out.absolute.dir}/${ant.project.name}_${channel}.apk" />
+        包
+
+        <antcall target="release" />
+        输出渠道包到bin/out目录下
+
+        <copy
+            file="bin/${ant.project.name}-release.apk"
+            tofile="${out.absolute.dir}/out/${ant.project.name}v${version}-${channel}.apk" />
+        
+        
+    </target> -->
+
+</project>
